@@ -2,12 +2,13 @@ import { redirect } from "next/navigation";
 
 import { PasswordForm } from "@/features/settings/components/PasswordForm";
 import { auth } from "@/features/settings/lib/auth";
+import { authRoutes } from "@/features/settings/lib/routes";
 
 export default async function SettingsSecurityPage() {
   const session = await auth();
 
   if (!session?.user?.id) {
-    redirect("/api/auth/signin");
+    redirect(authRoutes.signIn);
   }
 
   return (

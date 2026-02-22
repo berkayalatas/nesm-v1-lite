@@ -6,6 +6,7 @@ import {
   Shield,
   type LucideIcon,
 } from "lucide-react";
+import { settingsRoutes } from "@/features/settings/lib/routes";
 
 export type SettingsNavItem = {
   title: string;
@@ -16,27 +17,27 @@ export type SettingsNavItem = {
 export const settingsNavigation: SettingsNavItem[] = [
   {
     title: "Profile",
-    href: "/settings",
+    href: settingsRoutes.profile,
     icon: Settings,
   },
   {
     title: "Security",
-    href: "/settings/security",
+    href: settingsRoutes.security,
     icon: Shield,
   },
   {
     title: "Sessions",
-    href: "/settings/sessions",
+    href: settingsRoutes.sessions,
     icon: Monitor,
   },
   {
     title: "Preferences",
-    href: "/settings/preferences",
+    href: settingsRoutes.preferences,
     icon: Lock,
   },
   {
     title: "Activity",
-    href: "/settings/activity",
+    href: settingsRoutes.activity,
     icon: Activity,
   },
 ];

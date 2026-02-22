@@ -14,6 +14,7 @@ import {
 
 import {
   activityActionFilterOptions,
+  activityCategoryFilterOptions,
   activityActionRegistry,
   type ActivityActionType,
   type ActivityLogsResult,
@@ -170,6 +171,7 @@ export function ActivityTable({ data }: ActivityTableProps) {
   const [isPending, startTransition] = useTransition();
 
   const currentActionFilter = data.filters.action;
+  const currentCategoryFilter = data.filters.category;
   const currentStartDate = data.filters.startDate;
   const currentEndDate = data.filters.endDate;
 
@@ -189,12 +191,41 @@ export function ActivityTable({ data }: ActivityTableProps) {
 
   return (
     <div className="space-y-5">
+      <div className="flex flex-wrap gap-2">
+        {activityCategoryFilterOptions.map((chip) => {
+          const isActive = currentCategoryFilter === chip.value;
+          return (
+            <button
+              key={chip.value}
+              type="button"
+              onClick={() =>
+                navigateWithUpdates({
+                  category: chip.value === "ALL" ? null : chip.value,
+                  action: null,
+                  page: "1",
+                })
+              }
+              aria-pressed={isActive}
+              aria-label={`Filter by ${chip.label}`}
+            >
+              <Badge
+                variant={isActive ? "default" : "outline"}
+                className="cursor-pointer rounded-full px-3 py-1 text-xs"
+              >
+                {chip.label}
+              </Badge>
+            </button>
+          );
+        })}
+      </div>
+
       <div className="grid gap-3 md:grid-cols-4">
         <div className="md:col-span-2">
           <Select
             value={currentActionFilter}
             onValueChange={(value) =>
               navigateWithUpdates({
+                category: null,
                 action: value === "ALL" ? null : value,
                 page: "1",
               })

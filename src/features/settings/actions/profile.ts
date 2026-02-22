@@ -6,6 +6,7 @@ import { Prisma } from "@prisma/client";
 
 import { auth } from "@/features/settings/lib/auth";
 import { prisma } from "@/features/settings/lib/prisma";
+import { settingsRoutes } from "@/features/settings/lib/routes";
 import { uploadAvatar } from "@/features/settings/lib/storage";
 import {
   profileSchema,
@@ -117,7 +118,7 @@ export async function updateProfile(
     });
   }
 
-  revalidatePath("/settings");
+  revalidatePath(settingsRoutes.profile);
 
   return {
     success: true,

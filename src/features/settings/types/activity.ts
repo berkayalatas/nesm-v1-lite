@@ -19,6 +19,9 @@ export const activityActionRegistry = {
 } as const;
 
 export type ActivityActionType = keyof typeof activityActionRegistry;
+export type ActivityCategoryType =
+  | (typeof activityActionRegistry)[ActivityActionType]["category"]
+  | "ALL";
 
 export const activityActionFilterOptions = [
   { value: "ALL", label: "All Activities" },
@@ -28,8 +31,16 @@ export const activityActionFilterOptions = [
   })),
 ] as const;
 
+export const activityCategoryFilterOptions = [
+  { value: "ALL", label: "All" },
+  { value: "security", label: "Security" },
+  { value: "profile", label: "Profile" },
+  { value: "preferences", label: "Preferences" },
+] as const;
+
 export type ActivityLogFilters = {
   page: number;
+  category: ActivityCategoryType;
   action: ActivityActionType | "ALL";
   startDate: string;
   endDate: string;
@@ -37,6 +48,7 @@ export type ActivityLogFilters = {
 
 export type ActivityLogQueryParams = {
   page?: string | string[] | undefined;
+  category?: string | string[] | undefined;
   action?: string | string[] | undefined;
   startDate?: string | string[] | undefined;
   endDate?: string | string[] | undefined;

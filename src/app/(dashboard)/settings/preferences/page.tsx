@@ -3,13 +3,14 @@ import { redirect } from "next/navigation";
 import { PreferencesForm } from "@/features/settings/components/PreferencesForm";
 import { auth } from "@/features/settings/lib/auth";
 import { prisma } from "@/features/settings/lib/prisma";
+import { authRoutes } from "@/features/settings/lib/routes";
 import { preferencesSchema } from "@/features/settings/types/schemas";
 
 export default async function SettingsPreferencesPage() {
   const session = await auth();
 
   if (!session?.user?.id) {
-    redirect("/api/auth/signin");
+    redirect(authRoutes.signIn);
   }
 
   const preferences = await prisma.userPreferences.upsert({

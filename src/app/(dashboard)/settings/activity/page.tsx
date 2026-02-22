@@ -8,6 +8,7 @@ import {
 import { ActivityTable } from "@/features/settings/components/ActivityTable";
 import { ActivityTableSkeleton } from "@/features/settings/components/ActivityTableSkeleton";
 import { auth } from "@/features/settings/lib/auth";
+import { authRoutes, settingsRoutes } from "@/features/settings/lib/routes";
 import type { ActivityLogQueryParams } from "@/features/settings/types/activity";
 import { Button } from "@/components/ui/button";
 
@@ -22,14 +23,19 @@ async function ActivityTableContent({ searchParams }: { searchParams: ActivityLo
 
 function hasFilters(searchParams: ActivityLogQueryParams): boolean {
   const toString = (value?: string | string[]) => (Array.isArray(value) ? value[0] : value) ?? "";
-  return Boolean(toString(searchParams.action) || toString(searchParams.startDate) || toString(searchParams.endDate));
+  return Boolean(
+    toString(searchParams.category) ||
+      toString(searchParams.action) ||
+      toString(searchParams.startDate) ||
+      toString(searchParams.endDate)
+  );
 }
 
 export default async function SettingsActivityPage({ searchParams }: SettingsActivityPageProps) {
   const session = await auth();
 
   if (!session?.user?.id) {
-    redirect("/api/auth/signin");
+    redirect(authRoutes.signIn);
   }
 
   const resolvedSearchParams = await searchParams;
@@ -48,7 +54,7 @@ export default async function SettingsActivityPage({ searchParams }: SettingsAct
 
         {showClearFilters ? (
           <Button variant="outline" asChild>
-            <Link href="/settings/activity">Clear Filters</Link>
+            <Link href={settingsRoutes.activity}>Clear Filters</Link>
           </Button>
         ) : null}
       </header>

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 
 import { auth } from "@/features/settings/lib/auth";
 import { prisma } from "@/features/settings/lib/prisma";
+import { settingsRoutes } from "@/features/settings/lib/routes";
 import {
   preferenceUpdateSchema,
   preferencesSchema,
@@ -84,7 +85,7 @@ export async function updatePreference(
       return failed("Preferences were updated but response validation failed.");
     }
 
-    revalidatePath("/settings/preferences");
+    revalidatePath(settingsRoutes.preferences);
 
     return {
       success: true,

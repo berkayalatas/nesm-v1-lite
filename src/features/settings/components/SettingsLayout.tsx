@@ -7,6 +7,7 @@ import { signOut } from "next-auth/react";
 
 import { cn } from "@/lib/utils";
 import { settingsNavigation } from "@/features/settings/lib/navigation";
+import { appRoutes } from "@/features/settings/lib/routes";
 
 type SettingsLayoutProps = {
   children: React.ReactNode;
@@ -44,7 +45,7 @@ export function SettingsLayout({ children }: SettingsLayoutProps) {
 
         <button
           type="button"
-          onClick={() => signOut({ callbackUrl: "/" })}
+          onClick={() => signOut({ callbackUrl: appRoutes.home })}
           className="mt-auto flex w-full items-center justify-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900"
         >
           <LogOut className="h-4 w-4" />

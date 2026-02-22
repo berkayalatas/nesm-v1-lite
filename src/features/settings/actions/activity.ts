@@ -4,6 +4,7 @@ import { auth } from "@/features/settings/lib/auth";
 import { prisma } from "@/features/settings/lib/prisma";
 import {
   activityActionRegistry,
+  type ActivityCategoryType,
   type ActivityActionType,
   type ActivityLogQueryParams,
   type ActivityLogsResult,
@@ -31,6 +32,21 @@ function normalizeAction(value: string): ActivityActionType | "ALL" {
   if (value in activityActionRegistry) {
     return value as ActivityActionType;
   }
+  return "ALL";
+}
+
+function normalizeCategory(value: string): ActivityCategoryType {
+  if (!value) return "ALL";
+  if (value === "ALL") return "ALL";
+
+  const validCategories = new Set<string>(
+    Object.values(activityActionRegistry).map((item) => item.category)
+  );
+
+  if (validCategories.has(value)) {
+    return value as ActivityCategoryType;
+  }
+
   return "ALL";
 }
 
@@ -72,14 +88,28 @@ export async function getActivityLogs(
   }
 
   const action = normalizeAction(firstValue(rawParams.action));
+  const category = normalizeCategory(firstValue(rawParams.category));
   const startDate = normalizeDate(firstValue(rawParams.startDate));
   const endDate = normalizeDate(firstValue(rawParams.endDate));
   const requestedPage = normalizePage(firstValue(rawParams.page));
   const createdAtFilter = dateRange(startDate, endDate);
+  const actionsForCategory =
+    category === "ALL"
+      ? null
+      : (Object.entries(activityActionRegistry)
+          .filter(([, config]) => config.category === category)
+          .map(([name]) => name) as ActivityActionType[]);
+
+  const actionFilter =
+    action !== "ALL"
+      ? action
+      : actionsForCategory && actionsForCategory.length > 0
+        ? { in: actionsForCategory }
+        : undefined;
 
   const where = {
     userId: session.user.id,
-    ...(action !== "ALL" ? { action } : {}),
+    ...(actionFilter ? { action: actionFilter } : {}),
     ...(createdAtFilter ? { createdAt: createdAtFilter } : {}),
   };
 
@@ -115,6 +145,7 @@ export async function getActivityLogs(
     pageSize: PAGE_SIZE,
     filters: {
       page: currentPage,
+      category,
       action,
       startDate,
       endDate,

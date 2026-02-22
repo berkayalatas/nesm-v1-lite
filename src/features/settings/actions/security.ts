@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 
 import { auth } from "@/features/settings/lib/auth";
 import { prisma } from "@/features/settings/lib/prisma";
+import { settingsRoutes } from "@/features/settings/lib/routes";
 import {
   getSecurityAuthAdapter,
 } from "@/features/settings/lib/auth-adapter";
@@ -113,7 +114,7 @@ export async function changePassword(
     });
   }
 
-  revalidatePath("/settings/security");
+  revalidatePath(settingsRoutes.security);
 
   return {
     success: true,
@@ -180,7 +181,7 @@ export async function revokeSession(
     return failedSession("Unable to revoke the session. Please try again.");
   }
 
-  revalidatePath("/settings/sessions");
+  revalidatePath(settingsRoutes.sessions);
 
   return {
     success: true,
@@ -233,7 +234,7 @@ export async function logoutOthers(
     return failedSession("Unable to log out other devices. Please try again.");
   }
 
-  revalidatePath("/settings/sessions");
+  revalidatePath(settingsRoutes.sessions);
 
   return {
     success: true,

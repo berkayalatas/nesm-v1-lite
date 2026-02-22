@@ -3,13 +3,14 @@ import { redirect } from "next/navigation";
 import { SessionsList } from "@/features/settings/components/SessionsList";
 import { auth } from "@/features/settings/lib/auth";
 import { getSecurityAuthAdapter } from "@/features/settings/lib/auth-adapter";
+import { authRoutes } from "@/features/settings/lib/routes";
 import { getCurrentSessionToken } from "@/features/settings/lib/session-token";
 
 export default async function SettingsSessionsPage() {
   const session = await auth();
 
   if (!session?.user?.id) {
-    redirect("/api/auth/signin");
+    redirect(authRoutes.signIn);
   }
 
   const [sessions, currentSessionToken] = await Promise.all([
