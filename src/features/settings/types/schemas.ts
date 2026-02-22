@@ -79,3 +79,42 @@ export const sessionActionInitialState: SessionActionState = {
   success: false,
   message: "",
 };
+
+export const preferencesSchema = z.object({
+  marketingEmails: z.boolean(),
+  securityAlerts: z.boolean(),
+  theme: z.enum(["light", "dark", "system"]),
+});
+
+export type PreferencesSchema = z.infer<typeof preferencesSchema>;
+
+export const preferenceKeySchema = z.enum([
+  "marketingEmails",
+  "securityAlerts",
+  "theme",
+]);
+
+export type PreferenceKey = z.infer<typeof preferenceKeySchema>;
+
+export const preferenceUpdateSchema = z.discriminatedUnion("key", [
+  z.object({
+    key: z.literal("marketingEmails"),
+    value: z.boolean(),
+  }),
+  z.object({
+    key: z.literal("securityAlerts"),
+    value: z.boolean(),
+  }),
+  z.object({
+    key: z.literal("theme"),
+    value: z.enum(["light", "dark", "system"]),
+  }),
+]);
+
+export type PreferenceUpdateInput = z.infer<typeof preferenceUpdateSchema>;
+
+export type PreferenceActionState = {
+  success: boolean;
+  message: string;
+  preferences?: PreferencesSchema;
+};

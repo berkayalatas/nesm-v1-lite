@@ -1,0 +1,123 @@
+"use server";
+
+import { auth } from "@/features/settings/lib/auth";
+import { prisma } from "@/features/settings/lib/prisma";
+import {
+  activityActionRegistry,
+  type ActivityActionType,
+  type ActivityLogQueryParams,
+  type ActivityLogsResult,
+} from "@/features/settings/types/activity";
+
+const DEFAULT_PAGE = 1;
+const PAGE_SIZE = 12;
+
+function firstValue(value: string | string[] | undefined): string {
+  if (Array.isArray(value)) {
+    return value[0] ?? "";
+  }
+  return value ?? "";
+}
+
+function normalizeDate(value: string): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return "";
+  }
+  return value;
+}
+
+function normalizeAction(value: string): ActivityActionType | "ALL" {
+  if (!value) return "ALL";
+  if (value in activityActionRegistry) {
+    return value as ActivityActionType;
+  }
+  return "ALL";
+}
+
+function normalizePage(value: string): number {
+  const parsed = Number.parseInt(value, 10);
+  if (Number.isNaN(parsed) || parsed < 1) {
+    return DEFAULT_PAGE;
+  }
+  return parsed;
+}
+
+function dateRange(startDate: string, endDate: string) {
+  const hasStart = Boolean(startDate);
+  const hasEnd = Boolean(endDate);
+  if (!hasStart && !hasEnd) return undefined;
+
+  const createdAt: { gte?: Date; lt?: Date } = {};
+
+  if (hasStart) {
+    createdAt.gte = new Date(`${startDate}T00:00:00.000Z`);
+  }
+
+  if (hasEnd) {
+    const dayEndExclusive = new Date(`${endDate}T00:00:00.000Z`);
+    dayEndExclusive.setUTCDate(dayEndExclusive.getUTCDate() + 1);
+    createdAt.lt = dayEndExclusive;
+  }
+
+  return createdAt;
+}
+
+export async function getActivityLogs(
+  rawParams: ActivityLogQueryParams
+): Promise<ActivityLogsResult> {
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    throw new Error("Unauthorized");
+  }
+
+  const action = normalizeAction(firstValue(rawParams.action));
+  const startDate = normalizeDate(firstValue(rawParams.startDate));
+  const endDate = normalizeDate(firstValue(rawParams.endDate));
+  const requestedPage = normalizePage(firstValue(rawParams.page));
+  const createdAtFilter = dateRange(startDate, endDate);
+
+  const where = {
+    userId: session.user.id,
+    ...(action !== "ALL" ? { action } : {}),
+    ...(createdAtFilter ? { createdAt: createdAtFilter } : {}),
+  };
+
+  const totalCount = await prisma.auditLog.count({ where });
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const currentPage = Math.min(requestedPage, totalPages);
+  const offset = (currentPage - 1) * PAGE_SIZE;
+
+  const rows = await prisma.auditLog.findMany({
+    where,
+    orderBy: { createdAt: "desc" },
+    skip: offset,
+    take: PAGE_SIZE,
+    select: {
+      id: true,
+      action: true,
+      entity: true,
+      metadata: true,
+      ipAddress: true,
+      userAgent: true,
+      createdAt: true,
+    },
+  });
+
+  return {
+    rows: rows.map((row) => ({
+      ...row,
+      createdAt: row.createdAt.toISOString(),
+    })),
+    totalPages,
+    totalCount,
+    currentPage,
+    pageSize: PAGE_SIZE,
+    filters: {
+      page: currentPage,
+      action,
+      startDate,
+      endDate,
+    },
+  };
+}
