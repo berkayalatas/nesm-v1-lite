@@ -84,7 +84,21 @@ export async function getActivityLogs(
   const session = await auth();
 
   if (!session?.user?.id) {
-    throw new Error("Unauthorized");
+    return {
+      rows: [],
+      totalPages: 1,
+      totalCount: 0,
+      currentPage: 1,
+      pageSize: PAGE_SIZE,
+      filters: {
+        page: 1,
+        category: "ALL",
+        action: "ALL",
+        startDate: "",
+        endDate: "",
+      },
+      error: "You must be signed in to view activity logs.",
+    };
   }
 
   const action = normalizeAction(firstValue(rawParams.action));
@@ -113,42 +127,60 @@ export async function getActivityLogs(
     ...(createdAtFilter ? { createdAt: createdAtFilter } : {}),
   };
 
-  const totalCount = await prisma.auditLog.count({ where });
-  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
-  const currentPage = Math.min(requestedPage, totalPages);
-  const offset = (currentPage - 1) * PAGE_SIZE;
+  try {
+    const totalCount = await prisma.auditLog.count({ where });
+    const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+    const currentPage = Math.min(requestedPage, totalPages);
+    const offset = (currentPage - 1) * PAGE_SIZE;
 
-  const rows = await prisma.auditLog.findMany({
-    where,
-    orderBy: { createdAt: "desc" },
-    skip: offset,
-    take: PAGE_SIZE,
-    select: {
-      id: true,
-      action: true,
-      entity: true,
-      metadata: true,
-      ipAddress: true,
-      userAgent: true,
-      createdAt: true,
-    },
-  });
+    const rows = await prisma.auditLog.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip: offset,
+      take: PAGE_SIZE,
+      select: {
+        id: true,
+        action: true,
+        entity: true,
+        metadata: true,
+        ipAddress: true,
+        userAgent: true,
+        createdAt: true,
+      },
+    });
 
-  return {
-    rows: rows.map((row) => ({
-      ...row,
-      createdAt: row.createdAt.toISOString(),
-    })),
-    totalPages,
-    totalCount,
-    currentPage,
-    pageSize: PAGE_SIZE,
-    filters: {
-      page: currentPage,
-      category,
-      action,
-      startDate,
-      endDate,
-    },
-  };
+    return {
+      rows: rows.map((row) => ({
+        ...row,
+        createdAt: row.createdAt.toISOString(),
+      })),
+      totalPages,
+      totalCount,
+      currentPage,
+      pageSize: PAGE_SIZE,
+      filters: {
+        page: currentPage,
+        category,
+        action,
+        startDate,
+        endDate,
+      },
+    };
+  } catch {
+    return {
+      rows: [],
+      totalPages: 1,
+      totalCount: 0,
+      currentPage: 1,
+      pageSize: PAGE_SIZE,
+      filters: {
+        page: 1,
+        category,
+        action,
+        startDate,
+        endDate,
+      },
+      error: "Unable to load activity logs right now. Please try again.",
+    };
+  }
 }

@@ -1,20 +1,22 @@
 import { z } from "zod";
 
-export const profileSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(1, "Name is required.")
-    .min(2, "Name must be at least 2 characters.")
-    .max(80, "Name must be 80 characters or less."),
-  email: z
-    .string()
-    .trim()
-    .toLowerCase()
-    .min(1, "Email is required.")
-    .email("Please enter a valid email address.")
-    .max(254, "Email must be 254 characters or less."),
-});
+export const profileSchema = z
+  .object({
+    name: z
+      .string()
+      .trim()
+      .min(1, "Name is required.")
+      .min(2, "Name must be at least 2 characters.")
+      .max(80, "Name must be 80 characters or less."),
+    email: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .min(1, "Email is required.")
+      .email("Please enter a valid email address.")
+      .max(254, "Email must be 254 characters or less."),
+  })
+  .strict();
 
 export type ProfileSchema = z.infer<typeof profileSchema>;
 
@@ -33,6 +35,7 @@ export const passwordChangeSchema = z
       ),
     confirmPassword: z.string().min(1, "Please confirm your new password."),
   })
+  .strict()
   .refine((data) => data.newPassword === data.confirmPassword, {
     path: ["confirmPassword"],
     message: "Confirm password must match the new password.",
@@ -80,11 +83,13 @@ export const sessionActionInitialState: SessionActionState = {
   message: "",
 };
 
-export const preferencesSchema = z.object({
-  marketingEmails: z.boolean(),
-  securityAlerts: z.boolean(),
-  theme: z.enum(["light", "dark", "system"]),
-});
+export const preferencesSchema = z
+  .object({
+    marketingEmails: z.boolean(),
+    securityAlerts: z.boolean(),
+    theme: z.enum(["light", "dark", "system"]),
+  })
+  .strict();
 
 export type PreferencesSchema = z.infer<typeof preferencesSchema>;
 
@@ -97,18 +102,24 @@ export const preferenceKeySchema = z.enum([
 export type PreferenceKey = z.infer<typeof preferenceKeySchema>;
 
 export const preferenceUpdateSchema = z.discriminatedUnion("key", [
-  z.object({
-    key: z.literal("marketingEmails"),
-    value: z.boolean(),
-  }),
-  z.object({
-    key: z.literal("securityAlerts"),
-    value: z.boolean(),
-  }),
-  z.object({
-    key: z.literal("theme"),
-    value: z.enum(["light", "dark", "system"]),
-  }),
+  z
+    .object({
+      key: z.literal("marketingEmails"),
+      value: z.boolean(),
+    })
+    .strict(),
+  z
+    .object({
+      key: z.literal("securityAlerts"),
+      value: z.boolean(),
+    })
+    .strict(),
+  z
+    .object({
+      key: z.literal("theme"),
+      value: z.enum(["light", "dark", "system"]),
+    })
+    .strict(),
 ]);
 
 export type PreferenceUpdateInput = z.infer<typeof preferenceUpdateSchema>;

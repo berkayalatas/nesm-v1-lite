@@ -272,6 +272,12 @@ export function ActivityTable({ data }: ActivityTableProps) {
         <p className="text-sm text-slate-500">{totalRangeLabel}</p>
       </div>
 
+      {data.error ? (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+          {data.error}
+        </div>
+      ) : null}
+
       <div className="relative rounded-lg border border-slate-200">
         {isPending ? <ActivityTableLoadingOverlay /> : null}
         <Table>

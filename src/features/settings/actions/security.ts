@@ -61,34 +61,34 @@ export async function changePassword(
     });
   }
 
-  const adapter = getSecurityAuthAdapter();
-
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { id: true, password: true },
-  });
-
-  if (!user?.password) {
-    return failedSecurity("Password update is unavailable for this account.", {
-      form: ["This account does not support password changes."],
-    });
-  }
-
-  const isCurrentPasswordValid = await adapter.verifyPassword(
-    parsed.data.currentPassword,
-    user.password
-  );
-
-  if (!isCurrentPasswordValid) {
-    return failedSecurity("Current password is incorrect.", {
-      currentPassword: ["Current password is incorrect."],
-    });
-  }
-
-  const passwordHash = await adapter.hashPassword(parsed.data.newPassword);
-  const { ipAddress, userAgent } = await getRequestContext();
-
   try {
+    const adapter = getSecurityAuthAdapter();
+
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { id: true, password: true },
+    });
+
+    if (!user?.password) {
+      return failedSecurity("Password update is unavailable for this account.", {
+        form: ["This account does not support password changes."],
+      });
+    }
+
+    const isCurrentPasswordValid = await adapter.verifyPassword(
+      parsed.data.currentPassword,
+      user.password
+    );
+
+    if (!isCurrentPasswordValid) {
+      return failedSecurity("Current password is incorrect.", {
+        currentPassword: ["Current password is incorrect."],
+      });
+    }
+
+    const passwordHash = await adapter.hashPassword(parsed.data.newPassword);
+    const { ipAddress, userAgent } = await getRequestContext();
+
     await prisma.$transaction(async (tx) => {
       await tx.user.update({
         where: { id: session.user.id },
@@ -138,31 +138,31 @@ export async function revokeSession(
     return failedSession("Session token is missing.");
   }
 
-  const currentToken = await getCurrentSessionToken();
-  if (!currentToken) {
-    return failedSession("Current session token could not be resolved.");
-  }
-
-  if (sessionToken === currentToken) {
-    return failedSession("You cannot revoke the current device from this action.");
-  }
-
-  const targetSession = await prisma.session.findFirst({
-    where: {
-      sessionToken,
-      userId: session.user.id,
-    },
-    select: { sessionToken: true },
-  });
-
-  if (!targetSession) {
-    return failedSession("Session not found or access denied.");
-  }
-
-  const adapter = getSecurityAuthAdapter();
-  const { ipAddress, userAgent } = await getRequestContext();
-
   try {
+    const currentToken = await getCurrentSessionToken();
+    if (!currentToken) {
+      return failedSession("Current session token could not be resolved.");
+    }
+
+    if (sessionToken === currentToken) {
+      return failedSession("You cannot revoke the current device from this action.");
+    }
+
+    const targetSession = await prisma.session.findFirst({
+      where: {
+        sessionToken,
+        userId: session.user.id,
+      },
+      select: { sessionToken: true },
+    });
+
+    if (!targetSession) {
+      return failedSession("Session not found or access denied.");
+    }
+
+    const adapter = getSecurityAuthAdapter();
+    const { ipAddress, userAgent } = await getRequestContext();
+
     await adapter.revokeSession(targetSession.sessionToken);
 
     await prisma.auditLog.create({
@@ -200,22 +200,22 @@ export async function logoutOthers(
     return failedSession("You must be signed in to manage sessions.");
   }
 
-  const currentToken = await getCurrentSessionToken();
-  if (!currentToken) {
-    return failedSession("Current session token could not be resolved.");
-  }
-
-  const adapter = getSecurityAuthAdapter();
-  const { ipAddress, userAgent } = await getRequestContext();
-
-  const removed = await prisma.session.count({
-    where: {
-      userId: session.user.id,
-      sessionToken: { not: currentToken },
-    },
-  });
-
   try {
+    const currentToken = await getCurrentSessionToken();
+    if (!currentToken) {
+      return failedSession("Current session token could not be resolved.");
+    }
+
+    const adapter = getSecurityAuthAdapter();
+    const { ipAddress, userAgent } = await getRequestContext();
+
+    const removed = await prisma.session.count({
+      where: {
+        userId: session.user.id,
+        sessionToken: { not: currentToken },
+      },
+    });
+
     await adapter.logoutAllOtherSessions(session.user.id, currentToken);
 
     await prisma.auditLog.create({

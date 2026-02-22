@@ -71,4 +71,5 @@ export type ActivityLogsResult = {
   currentPage: number;
   pageSize: number;
   filters: ActivityLogFilters;
+  error?: string;
 };
