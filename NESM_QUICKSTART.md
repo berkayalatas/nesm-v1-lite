@@ -2,6 +2,14 @@
 
 This guide is for teams integrating the NESM Settings module into a fresh Next.js app in under 60 minutes.
 
+## **Core Features**
+
+- **Profile Management:** avatar upload, name/email updates, strict validation.
+- **Security Controls:** password change, session revoke, logout-other-devices.
+- **Preferences UX:** optimistic autosave toggles with rollback on failure.
+- **Activity Audit Log:** server-side pagination, URL-based filtering, metadata rendering.
+- **Onboarding DX:** `nesm:check`, welcome dashboard, dismissible success banner.
+
 ## 1. Prerequisites
 
 - Next.js App Router project (`next@16+`, `react@19+`)
@@ -135,3 +143,15 @@ For module extension, start with:
 - `src/features/settings/types/activity.ts` for new activity action families
 - `src/features/settings/lib/routes.ts` for route remapping
 - adapter files in `src/features/settings/lib/*-adapter.ts` for provider swaps
+
+## 11. Troubleshooting
+
+- `nesm:check` shows `Database connection failed`:
+  - Confirm `DATABASE_URL` is valid and points to the correct host/port.
+  - For Neon/Postgres providers, ensure network/IP access rules allow your current machine.
+  - Verify SSL requirements from your provider are reflected in the connection string.
+- `AUTH_SECRET is missing` warning:
+  - Add a strong random `AUTH_SECRET` in `.env` before testing sign-in/session flows.
+- `BLOB_READ_WRITE_TOKEN is missing` warning:
+  - Safe to ignore for local dev if avatar uploads are not required.
+  - Add token before enabling production avatar upload via Vercel Blob.

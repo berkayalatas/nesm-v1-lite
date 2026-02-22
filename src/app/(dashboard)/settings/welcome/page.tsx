@@ -3,6 +3,7 @@ import { CheckCircle2, Rocket, Sparkles, Wrench } from "lucide-react";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/features/settings/lib/auth";
+import { WelcomeConfetti } from "@/features/settings/components/WelcomeConfetti";
 import { authRoutes, settingsRoutes } from "@/features/settings/lib/routes";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,8 @@ export default async function SettingsWelcomePage() {
 
   return (
     <section className="space-y-6">
+      <WelcomeConfetti />
+
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br from-sky-50 via-white to-emerald-50">
         <div className="space-y-5 p-6 sm:p-8">
           <div className="flex flex-wrap items-center gap-3">
