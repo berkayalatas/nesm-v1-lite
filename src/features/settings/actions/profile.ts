@@ -14,6 +14,8 @@ import {
   type ProfileActionState,
 } from "@/features/settings/types/schemas";
 
+const MAX_AVATAR_URL_LENGTH = 1024;
+
 function fail(message: string, errors?: ProfileActionErrors): ProfileActionState {
   return {
     success: false,
@@ -55,17 +57,21 @@ export async function updateProfile(
     }
   }
 
+  if (avatarUrl && (avatarUrl.startsWith("data:") || avatarUrl.length > MAX_AVATAR_URL_LENGTH)) {
+    return fail("Avatar upload failed.", {
+      avatar: ["Avatar URL is invalid. Please upload a different image."],
+    });
+  }
+
   const requestHeaders = await headers();
   const ipAddress = requestHeaders.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
   const userAgent = requestHeaders.get("user-agent");
-  let savedProfile:
-    | {
-        name: string | null;
-        email: string | null;
-        avatarUrl: string | null;
-        image: string | null;
-      }
-    | null = null;
+  let savedProfile: {
+    name: string | null;
+    email: string | null;
+    avatarUrl: string | null;
+    image: string | null;
+  } | null = null;
 
   try {
     await prisma.$transaction(async (tx) => {
@@ -83,7 +89,7 @@ export async function updateProfile(
         throw new Error("User not found.");
       }
 
-      const updatedUser = await tx.user.update({
+      savedProfile = await tx.user.update({
         where: { id: session.user.id },
         data: {
           name: parsed.data.name,
@@ -97,7 +103,6 @@ export async function updateProfile(
           image: true,
         },
       });
-      savedProfile = updatedUser;
 
       await tx.auditLog.create({
         data: {
@@ -105,17 +110,42 @@ export async function updateProfile(
           action: "PROFILE_UPDATE",
           entity: "USER",
           metadata: {
-            nameChanged: existingUser.name !== updatedUser.name,
-            emailChanged: existingUser.email !== updatedUser.email,
+            nameChanged: existingUser.name !== savedProfile.name,
+            emailChanged: existingUser.email !== savedProfile.email,
             avatarChanged:
-              existingUser.avatarUrl !== updatedUser.avatarUrl ||
-              existingUser.image !== updatedUser.image,
+              existingUser.avatarUrl !== savedProfile.avatarUrl ||
+              existingUser.image !== savedProfile.image,
           },
           ipAddress,
           userAgent,
         },
       });
     });
+
+    revalidatePath(settingsRoutes.profile);
+    revalidatePath("/settings");
+    revalidatePath("/settings/preferences");
+    revalidatePath("/", "layout");
+
+    type SavedProfile = {
+      name: string | null;
+      email: string | null;
+      avatarUrl: string | null;
+      image: string | null;
+    };
+
+    return {
+      success: true,
+      message: "Profile updated successfully.",
+      profile: savedProfile
+        ? {
+            name: (savedProfile as SavedProfile).name ?? "",
+            email: (savedProfile as SavedProfile).email ?? "",
+            avatarUrl: (savedProfile as SavedProfile).avatarUrl,
+            image: (savedProfile as SavedProfile).image,
+          }
+        : undefined,
+    };
   } catch (error) {
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -130,21 +160,4 @@ export async function updateProfile(
       form: ["Unexpected server error while saving profile."],
     });
   }
-
-  revalidatePath(settingsRoutes.profile);
-  revalidatePath("/settings");
-  revalidatePath("/settings/preferences");
-
-  return {
-    success: true,
-    message: "Profile updated successfully.",
-    profile: savedProfile
-      ? {
-          name: savedProfile.name ?? "",
-          email: savedProfile.email ?? "",
-          avatarUrl: savedProfile.avatarUrl,
-          image: savedProfile.image,
-        }
-      : undefined,
-  };
 }

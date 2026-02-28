@@ -10,6 +10,18 @@ const credentialsSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
 });
+const MAX_SESSION_IMAGE_URL_LENGTH = 1024;
+
+function normalizeSessionImage(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+
+  const image = value.trim();
+  if (!image) return undefined;
+  if (image.startsWith("data:")) return undefined;
+  if (image.length > MAX_SESSION_IMAGE_URL_LENGTH) return undefined;
+
+  return image;
+}
 
 const authSecret = process.env.AUTH_SECRET;
 
@@ -64,41 +76,37 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   callbacks: {
     jwt: async ({ token, user, trigger, session }) => {
-      if (user?.id) {
-        token.sub = user.id;
-      }
-      if (user?.role) {
-        token.role = user.role;
-      }
-      if (user?.image) {
-        token.picture = user.image;
-      }
-      if (
-        trigger === "update" &&
-        session &&
-        "image" in session &&
-        typeof session.image === "string"
-      ) {
-        token.picture = session.image;
+      if (user) {
+        token.id = user.id;
+        token.role = (user as { role?: string }).role;
+        token.picture = normalizeSessionImage(user.image);
       }
 
-      if (token.sub) {
+      const updatedImage =
+        trigger === "update"
+          ? normalizeSessionImage(session?.image ?? (session?.user as { image?: unknown } | undefined)?.image)
+          : undefined;
+      if (updatedImage) {
+        token.picture = updatedImage;
+      }
+
+      if (token.id) {
         const dbUser = await prisma.user.findUnique({
-          where: { id: token.sub },
+          where: { id: token.id as string },
           select: {
+            image: true,
+            avatarUrl: true,
             name: true,
             email: true,
             role: true,
-            image: true,
-            avatarUrl: true,
           },
         });
 
         if (dbUser) {
-          token.name = dbUser.name ?? token.name;
-          token.email = dbUser.email ?? token.email;
-          token.role = dbUser.role ?? token.role;
-          token.picture = dbUser.image ?? dbUser.avatarUrl ?? token.picture;
+          token.picture = normalizeSessionImage(dbUser.image ?? dbUser.avatarUrl);
+          token.name = dbUser.name;
+          token.email = dbUser.email;
+          token.role = dbUser.role;
         }
       }
 
@@ -106,11 +114,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
     session: async ({ session, token }) => {
       if (session.user) {
-        session.user.id = token.sub ?? "";
-        session.user.role = token.role ?? "user";
-        session.user.name = typeof token.name === "string" ? token.name : session.user.name;
-        session.user.email = typeof token.email === "string" ? token.email : session.user.email;
-        session.user.image = typeof token.picture === "string" ? token.picture : session.user.image;
+        session.user.id = token.id as string;
+        session.user.image = normalizeSessionImage(token.picture) ?? null;
+        session.user.role = token.role as string;
+        session.user.name = token.name as string;
+        session.user.email = token.email as string;
       }
       return session;
     },

@@ -5,6 +5,7 @@ import { Camera } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useSession } from "next-auth/react";
 import { useForm } from "react-hook-form";
+import { useRouter } from "next/navigation";
 
 import { updateProfile } from "@/features/settings/actions/profile";
 import {
@@ -47,8 +48,9 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
   const [isPending, startTransition] = useTransition();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const lastHandledStateKey = useRef<string>("");
-  const { update } = useSession();
+  const { data: session, update } = useSession();
   const { toast } = useToast();
+  const router = useRouter();
 
   const form = useForm<ProfileSchema>({
     resolver: zodResolver(profileSchema),
@@ -84,11 +86,13 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
     if (state.success) {
       toast.success(state.message);
       if (state.profile) {
+        const nextImage = state.profile.image ?? state.profile.avatarUrl ?? undefined;
         void update({
-          name: state.profile.name,
-          email: state.profile.email,
-          image: state.profile.image ?? state.profile.avatarUrl ?? undefined,
+          user: {
+            image: nextImage,
+          },
         });
+        router.refresh();
       }
       if (selectedFile) {
         setTimeout(() => setSelectedFile(null), 0);
@@ -107,7 +111,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
       if (!value?.[0]) return;
       form.setError(key, { message: value[0] });
     });
-  }, [form, selectedFile, state, toast, update]);
+  }, [form, router, selectedFile, session, state, toast, update]);
 
   const handleSubmit = form.handleSubmit((values) => {
     const payload = new FormData();

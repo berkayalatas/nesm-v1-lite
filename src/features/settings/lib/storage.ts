@@ -1,4 +1,6 @@
 import { put } from "@vercel/blob";
+import fs from "node:fs/promises";
+import path from "node:path";
 
 const ALLOWED_IMAGE_TYPES = new Set([
   "image/jpeg",
@@ -8,7 +10,6 @@ const ALLOWED_IMAGE_TYPES = new Set([
 ]);
 
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
-const FALLBACK_AVATAR_URL = "https://api.dicebear.com/7.x/avataaars/svg?seed=NESM-Avatar";
 const isBlobTokenConfigured = Boolean(
   process.env.BLOB_READ_WRITE_TOKEN &&
     process.env.BLOB_READ_WRITE_TOKEN !== "local-dev-placeholder-token"
@@ -38,16 +39,12 @@ function buildAvatarPath(filename: string): string {
   return `avatars/${crypto.randomUUID()}.${ext}`;
 }
 
-function buildFallbackAvatarUrl(): string {
-  return FALLBACK_AVATAR_URL;
-}
-
 const vercelBlobAvatarStorage: AvatarStorageAdapter = {
   async uploadAvatar(file: File): Promise<string> {
     ensureSupportedAvatar(file);
 
     if (!isBlobTokenConfigured) {
-      return buildFallbackAvatarUrl();
+      throw new Error("Vercel Blob storage is not configured.");
     }
 
     try {
@@ -58,22 +55,34 @@ const vercelBlobAvatarStorage: AvatarStorageAdapter = {
 
       return blob.url;
     } catch (error) {
-      const message = error instanceof Error ? error.message : "";
-      const isAccessError =
-        message.includes("Access denied") ||
-        message.includes("401") ||
-        message.includes("403");
-
-      if (isAccessError) {
-        return buildFallbackAvatarUrl();
-      }
-
       throw error;
     }
   },
 };
 
-let avatarStorageAdapter: AvatarStorageAdapter = vercelBlobAvatarStorage;
+const localFileSystemAvatarStorage: AvatarStorageAdapter = {
+  async uploadAvatar(file: File): Promise<string> {
+    ensureSupportedAvatar(file);
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const publicDir = path.join(process.cwd(), "public", "avatars");
+
+    try {
+      await fs.access(publicDir);
+    } catch {
+      await fs.mkdir(publicDir, { recursive: true });
+    }
+
+    const filename = `${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "-")}`;
+    const filePath = path.join(publicDir, filename);
+    await fs.writeFile(filePath, buffer);
+
+    return `/avatars/${filename}`;
+  },
+};
+
+let avatarStorageAdapter: AvatarStorageAdapter = isBlobTokenConfigured
+  ? vercelBlobAvatarStorage
+  : localFileSystemAvatarStorage;
 
 export function setAvatarStorageAdapter(adapter: AvatarStorageAdapter): void {
   avatarStorageAdapter = adapter;
