@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useState, useTransition } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -31,6 +31,7 @@ export function PasswordForm() {
     changePassword,
     securityActionInitialState
   );
+  const [isTransitionPending, startTransition] = useTransition();
   const [visible, setVisible] = useState<Record<PasswordField, boolean>>({
     currentPassword: false,
     newPassword: false,
@@ -73,7 +74,9 @@ export function PasswordForm() {
     data.set("currentPassword", values.currentPassword);
     data.set("newPassword", values.newPassword);
     data.set("confirmPassword", values.confirmPassword);
-    formAction(data);
+    startTransition(() => {
+      formAction(data);
+    });
   });
 
   return (
@@ -133,8 +136,8 @@ export function PasswordForm() {
             ) : null}
 
             <div className="flex justify-end">
-              <Button type="submit" disabled={isPending}>
-                {isPending ? "Updating..." : "Update Password"}
+              <Button type="submit" disabled={isPending || isTransitionPending}>
+                {isPending || isTransitionPending ? "Updating..." : "Update Password"}
               </Button>
             </div>
           </form>

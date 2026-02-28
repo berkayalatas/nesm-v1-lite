@@ -38,6 +38,7 @@ type SessionRow = {
 type SessionsListProps = {
   sessions: SessionRow[];
   currentSessionToken: string | null;
+  isFallback?: boolean;
 };
 
 function parseUserAgent(userAgent: string | null): { browser: string; device: string } {
@@ -63,15 +64,20 @@ function parseUserAgent(userAgent: string | null): { browser: string; device: st
   return { browser, device };
 }
 
-export function SessionsList({ sessions, currentSessionToken }: SessionsListProps) {
+export function SessionsList({
+  sessions,
+  currentSessionToken,
+  isFallback = false,
+}: SessionsListProps) {
   const [rows, setRows] = useState(sessions);
   const [isRevokePending, startRevokeTransition] = useTransition();
   const [isLogoutOthersPending, startLogoutOthersTransition] = useTransition();
   const { toast } = useToast();
+  const effectiveCurrentSessionToken = currentSessionToken ?? rows[0]?.sessionToken ?? null;
 
   const otherSessionsCount = useMemo(
-    () => rows.filter((row) => row.sessionToken !== currentSessionToken).length,
-    [rows, currentSessionToken]
+    () => rows.filter((row) => row.sessionToken !== effectiveCurrentSessionToken).length,
+    [rows, effectiveCurrentSessionToken]
   );
 
   const handleRevoke = (sessionToken: string) => {
@@ -100,7 +106,9 @@ export function SessionsList({ sessions, currentSessionToken }: SessionsListProp
         return;
       }
 
-      setRows((prev) => prev.filter((row) => row.sessionToken === currentSessionToken));
+      setRows((prev) =>
+        prev.filter((row) => row.sessionToken === effectiveCurrentSessionToken)
+      );
       toast.success(result.message);
     });
   };
@@ -122,6 +130,11 @@ export function SessionsList({ sessions, currentSessionToken }: SessionsListProp
         </Button>
       </CardHeader>
       <CardContent>
+        {isFallback ? (
+          <p className="mb-4 rounded-md border border-emerald-300/40 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+            Your current session is active on this device.
+          </p>
+        ) : null}
         <Table>
           <TableHeader>
             <TableRow>
@@ -134,7 +147,7 @@ export function SessionsList({ sessions, currentSessionToken }: SessionsListProp
           <TableBody>
             {rows.map((row) => {
               const parsed = parseUserAgent(row.userAgent);
-              const isCurrent = row.sessionToken === currentSessionToken;
+              const isCurrent = row.sessionToken === effectiveCurrentSessionToken;
 
               return (
                 <TableRow key={row.sessionToken}>

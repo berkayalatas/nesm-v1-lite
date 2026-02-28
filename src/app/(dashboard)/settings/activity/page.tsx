@@ -8,7 +8,7 @@ import {
 import { ActivityTable } from "@/features/settings/components/ActivityTable";
 import { ActivityTableSkeleton } from "@/features/settings/components/ActivityTableSkeleton";
 import { auth } from "@/features/settings/lib/auth";
-import { authRoutes, settingsRoutes } from "@/features/settings/lib/routes";
+import { getSignInRoute, settingsRoutes } from "@/features/settings/lib/routes";
 import type { ActivityLogQueryParams } from "@/features/settings/types/activity";
 import { Button } from "@/components/ui/button";
 
@@ -35,7 +35,7 @@ export default async function SettingsActivityPage({ searchParams }: SettingsAct
   const session = await auth();
 
   if (!session?.user?.id) {
-    redirect(authRoutes.signIn);
+    redirect(getSignInRoute(settingsRoutes.activity));
   }
 
   const resolvedSearchParams = await searchParams;

@@ -51,6 +51,12 @@ export type ProfileActionState = {
   success: boolean;
   message: string;
   errors?: ProfileActionErrors;
+  profile?: {
+    name: string;
+    email: string;
+    avatarUrl: string | null;
+    image: string | null;
+  };
 };
 
 export const profileActionInitialState: ProfileActionState = {

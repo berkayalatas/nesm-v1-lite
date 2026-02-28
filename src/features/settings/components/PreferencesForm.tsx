@@ -51,12 +51,13 @@ export function PreferencesForm({ initialPreferences }: PreferencesFormProps) {
 
   const handleToggle = (key: PreferenceToggleKey, checked: boolean) => {
     const previousValue = serverPreferences[key];
-    addOptimisticPreference({ key, value: checked });
 
     startTransition(async () => {
+      addOptimisticPreference({ key, value: checked });
       const result = await updatePreference({ key, value: checked });
 
       if (!result.success || !result.preferences) {
+        addOptimisticPreference({ key, value: previousValue });
         setServerPreferences((prev) => ({ ...prev, [key]: previousValue }));
         toast.error(result.message || "Unable to save your preference.");
         return;

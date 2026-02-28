@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 
 import { auth } from "@/features/settings/lib/auth";
 import { WelcomeConfetti } from "@/features/settings/components/WelcomeConfetti";
-import { authRoutes, settingsRoutes } from "@/features/settings/lib/routes";
+import { getSignInRoute, settingsRoutes } from "@/features/settings/lib/routes";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
@@ -25,7 +25,7 @@ export default async function SettingsWelcomePage() {
   const session = await auth();
 
   if (!session?.user?.id) {
-    redirect(authRoutes.signIn);
+    redirect(getSignInRoute(settingsRoutes.welcome));
   }
 
   const isProduction = process.env.NODE_ENV === "production";

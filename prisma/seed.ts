@@ -86,7 +86,6 @@ async function main() {
     }),
   });
 
-  console.log("Seed completed: 1 admin, 1 user, 10 audit logs.");
 }
 
 main()

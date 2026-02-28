@@ -58,6 +58,14 @@ export async function updateProfile(
   const requestHeaders = await headers();
   const ipAddress = requestHeaders.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
   const userAgent = requestHeaders.get("user-agent");
+  let savedProfile:
+    | {
+        name: string | null;
+        email: string | null;
+        avatarUrl: string | null;
+        image: string | null;
+      }
+    | null = null;
 
   try {
     await prisma.$transaction(async (tx) => {
@@ -67,6 +75,7 @@ export async function updateProfile(
           name: true,
           email: true,
           avatarUrl: true,
+          image: true,
         },
       });
 
@@ -79,14 +88,16 @@ export async function updateProfile(
         data: {
           name: parsed.data.name,
           email: parsed.data.email,
-          ...(avatarUrl ? { avatarUrl } : {}),
+          ...(avatarUrl ? { avatarUrl, image: avatarUrl } : {}),
         },
         select: {
           name: true,
           email: true,
           avatarUrl: true,
+          image: true,
         },
       });
+      savedProfile = updatedUser;
 
       await tx.auditLog.create({
         data: {
@@ -96,7 +107,9 @@ export async function updateProfile(
           metadata: {
             nameChanged: existingUser.name !== updatedUser.name,
             emailChanged: existingUser.email !== updatedUser.email,
-            avatarChanged: existingUser.avatarUrl !== updatedUser.avatarUrl,
+            avatarChanged:
+              existingUser.avatarUrl !== updatedUser.avatarUrl ||
+              existingUser.image !== updatedUser.image,
           },
           ipAddress,
           userAgent,
@@ -119,9 +132,19 @@ export async function updateProfile(
   }
 
   revalidatePath(settingsRoutes.profile);
+  revalidatePath("/settings");
+  revalidatePath("/settings/preferences");
 
   return {
     success: true,
     message: "Profile updated successfully.",
+    profile: savedProfile
+      ? {
+          name: savedProfile.name ?? "",
+          email: savedProfile.email ?? "",
+          avatarUrl: savedProfile.avatarUrl,
+          image: savedProfile.image,
+        }
+      : undefined,
   };
 }

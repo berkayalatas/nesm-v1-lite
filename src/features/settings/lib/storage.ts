@@ -8,6 +8,11 @@ const ALLOWED_IMAGE_TYPES = new Set([
 ]);
 
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
+const FALLBACK_AVATAR_URL = "https://api.dicebear.com/7.x/avataaars/svg?seed=NESM-Avatar";
+const isBlobTokenConfigured = Boolean(
+  process.env.BLOB_READ_WRITE_TOKEN &&
+    process.env.BLOB_READ_WRITE_TOKEN !== "local-dev-placeholder-token"
+);
 
 export interface AvatarStorageAdapter {
   uploadAvatar(file: File): Promise<string>;
@@ -33,16 +38,38 @@ function buildAvatarPath(filename: string): string {
   return `avatars/${crypto.randomUUID()}.${ext}`;
 }
 
+function buildFallbackAvatarUrl(): string {
+  return FALLBACK_AVATAR_URL;
+}
+
 const vercelBlobAvatarStorage: AvatarStorageAdapter = {
   async uploadAvatar(file: File): Promise<string> {
     ensureSupportedAvatar(file);
 
-    const blob = await put(buildAvatarPath(file.name), file, {
-      access: "public",
-      addRandomSuffix: false,
-    });
+    if (!isBlobTokenConfigured) {
+      return buildFallbackAvatarUrl();
+    }
 
-    return blob.url;
+    try {
+      const blob = await put(buildAvatarPath(file.name), file, {
+        access: "public",
+        addRandomSuffix: false,
+      });
+
+      return blob.url;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      const isAccessError =
+        message.includes("Access denied") ||
+        message.includes("401") ||
+        message.includes("403");
+
+      if (isAccessError) {
+        return buildFallbackAvatarUrl();
+      }
+
+      throw error;
+    }
   },
 };
 

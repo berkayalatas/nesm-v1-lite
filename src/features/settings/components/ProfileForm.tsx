@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useState, useTransition } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Camera } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useSession } from "next-auth/react";
 import { useForm } from "react-hook-form";
 
 import { updateProfile } from "@/features/settings/actions/profile";
@@ -32,6 +33,8 @@ type ProfileFormProps = {
   };
 };
 
+const MAX_CLIENT_AVATAR_BYTES = 8 * 1024 * 1024;
+
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   const first = parts[0]?.[0] ?? "U";
@@ -43,6 +46,8 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
   const [state, formAction] = useActionState(updateProfile, profileActionInitialState);
   const [isPending, startTransition] = useTransition();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const lastHandledStateKey = useRef<string>("");
+  const { update } = useSession();
   const { toast } = useToast();
 
   const form = useForm<ProfileSchema>({
@@ -54,21 +59,40 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
     mode: "onSubmit",
   });
 
-  const previewUrl = useMemo(() => {
-    if (!selectedFile) return initialData.avatarUrl;
+  const localPreviewUrl = useMemo(() => {
+    if (!selectedFile) return null;
     return URL.createObjectURL(selectedFile);
-  }, [initialData.avatarUrl, selectedFile]);
+  }, [selectedFile]);
+
+  const previewUrl =
+    localPreviewUrl ??
+    (state.success && state.profile
+      ? state.profile.avatarUrl ?? state.profile.image ?? initialData.avatarUrl
+      : initialData.avatarUrl);
 
   useEffect(() => {
-    if (!selectedFile || !previewUrl?.startsWith("blob:")) return;
-    return () => URL.revokeObjectURL(previewUrl);
-  }, [selectedFile, previewUrl]);
+    if (!localPreviewUrl) return;
+    return () => URL.revokeObjectURL(localPreviewUrl);
+  }, [localPreviewUrl]);
 
   useEffect(() => {
     if (!state.message) return;
+    const stateKey = `${state.success}:${state.message}`;
+    if (lastHandledStateKey.current === stateKey) return;
+    lastHandledStateKey.current = stateKey;
 
     if (state.success) {
       toast.success(state.message);
+      if (state.profile) {
+        void update({
+          name: state.profile.name,
+          email: state.profile.email,
+          image: state.profile.image ?? state.profile.avatarUrl ?? undefined,
+        });
+      }
+      if (selectedFile) {
+        setTimeout(() => setSelectedFile(null), 0);
+      }
       return;
     }
 
@@ -83,7 +107,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
       if (!value?.[0]) return;
       form.setError(key, { message: value[0] });
     });
-  }, [form, state, toast]);
+  }, [form, selectedFile, state, toast, update]);
 
   const handleSubmit = form.handleSubmit((values) => {
     const payload = new FormData();
@@ -129,6 +153,12 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
               className="sr-only"
               onChange={(event) => {
                 const file = event.target.files?.[0] ?? null;
+                if (file && file.size > MAX_CLIENT_AVATAR_BYTES) {
+                  toast.error("Selected image is too large. Please choose an image smaller than 8MB.");
+                  event.target.value = "";
+                  setSelectedFile(null);
+                  return;
+                }
                 setSelectedFile(file);
               }}
             />

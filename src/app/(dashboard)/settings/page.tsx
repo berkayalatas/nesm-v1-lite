@@ -4,7 +4,7 @@ import { ProfileForm } from "@/features/settings/components/ProfileForm";
 import { WelcomeBanner } from "@/features/settings/components/WelcomeBanner";
 import { auth } from "@/features/settings/lib/auth";
 import { prisma } from "@/features/settings/lib/prisma";
-import { authRoutes } from "@/features/settings/lib/routes";
+import { getSignInRoute, settingsRoutes } from "@/features/settings/lib/routes";
 
 type SettingsProfilePageProps = {
   searchParams: Promise<{ welcome?: string | string[] | undefined }>;
@@ -14,7 +14,7 @@ export default async function SettingsProfilePage({ searchParams }: SettingsProf
   const session = await auth();
 
   if (!session?.user?.id) {
-    redirect(authRoutes.signIn);
+    redirect(getSignInRoute(settingsRoutes.profile));
   }
 
   const user = await prisma.user.findUnique({
@@ -23,11 +23,12 @@ export default async function SettingsProfilePage({ searchParams }: SettingsProf
       name: true,
       email: true,
       avatarUrl: true,
+      image: true,
     },
   });
 
   if (!user?.email) {
-    redirect(authRoutes.signIn);
+    redirect(getSignInRoute(settingsRoutes.profile));
   }
 
   const resolvedParams = await searchParams;
@@ -49,7 +50,7 @@ export default async function SettingsProfilePage({ searchParams }: SettingsProf
         initialData={{
           name: user.name ?? "",
           email: user.email,
-          avatarUrl: user.avatarUrl,
+          avatarUrl: user.avatarUrl ?? user.image ?? null,
         }}
       />
     </section>

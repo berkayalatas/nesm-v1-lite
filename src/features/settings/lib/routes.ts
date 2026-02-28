@@ -8,8 +8,14 @@ export const settingsRoutes = {
 } as const;
 
 export const authRoutes = {
-  signIn: "/api/auth/signin",
+  signIn: "/signin",
 } as const;
+
+export function getSignInRoute(callbackPath?: string) {
+  if (!callbackPath) return authRoutes.signIn;
+
+  return `${authRoutes.signIn}?callbackUrl=${encodeURIComponent(callbackPath)}`;
+}
 
 export const appRoutes = {
   home: "/",
