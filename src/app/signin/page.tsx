@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useMemo } from "react";
+import { Suspense, useActionState, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 
 import {
@@ -20,7 +20,7 @@ function getErrorMessage(errorCode: string | null): string {
   return "";
 }
 
-export default function SignInPage() {
+function SignInForm() {
   const searchParams = useSearchParams();
   const [state, formAction, isPending] = useActionState(
     signInWithCredentials,
@@ -94,5 +94,28 @@ export default function SignInPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+function SignInFallback() {
+  return (
+    <div className="min-h-screen bg-slate-950 px-4 py-10 text-slate-100">
+      <div className="mx-auto flex min-h-[70vh] w-full max-w-md items-center">
+        <Card className="w-full border-white/10 bg-slate-900/70">
+          <CardHeader>
+            <CardTitle className="text-xl text-white">Sign in</CardTitle>
+            <CardDescription>Loading sign-in form...</CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense fallback={<SignInFallback />}>
+      <SignInForm />
+    </Suspense>
   );
 }
