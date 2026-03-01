@@ -36,6 +36,9 @@ export default async function SettingsProfilePage({ searchParams }: SettingsProf
     ? resolvedParams.welcome[0]
     : resolvedParams.welcome;
   const forceShowWelcome = welcomeParam === "true";
+  const initialsAvatarUrl = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(
+    user.name?.trim() || "User"
+  )}`;
 
   return (
     <section className="space-y-6">
@@ -50,7 +53,7 @@ export default async function SettingsProfilePage({ searchParams }: SettingsProf
         initialData={{
           name: user.name ?? "",
           email: user.email,
-          avatarUrl: user.avatarUrl ?? user.image ?? null,
+          avatarUrl: user.avatarUrl ?? user.image ?? initialsAvatarUrl,
         }}
       />
     </section>

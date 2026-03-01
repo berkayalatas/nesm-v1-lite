@@ -4,7 +4,7 @@ import { useActionState, useEffect, useMemo, useRef, useState, useTransition } f
 import { Camera } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useSession } from "next-auth/react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { useRouter } from "next/navigation";
 
 import { updateProfile } from "@/features/settings/actions/profile";
@@ -43,6 +43,10 @@ function initials(name: string): string {
   return `${first}${second}`.toUpperCase();
 }
 
+function initialsAvatarUrl(name: string): string {
+  return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name.trim() || "User")}`;
+}
+
 export function ProfileForm({ initialData }: ProfileFormProps) {
   const [state, formAction] = useActionState(updateProfile, profileActionInitialState);
   const [isPending, startTransition] = useTransition();
@@ -66,11 +70,17 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
     return URL.createObjectURL(selectedFile);
   }, [selectedFile]);
 
+  const watchedName = useWatch({ control: form.control, name: "name" });
+  const nextName =
+    (state.success && state.profile?.name ? state.profile.name : watchedName) || initialData.name || "User";
+  const initialsPreviewUrl = useMemo(() => initialsAvatarUrl(nextName), [nextName]);
+  const persistedAvatarUrl =
+    state.success && state.profile
+      ? state.profile.avatarUrl ?? state.profile.image ?? null
+      : initialData.avatarUrl;
+
   const previewUrl =
-    localPreviewUrl ??
-    (state.success && state.profile
-      ? state.profile.avatarUrl ?? state.profile.image ?? initialData.avatarUrl
-      : initialData.avatarUrl);
+    localPreviewUrl ?? persistedAvatarUrl ?? initialsPreviewUrl;
 
   useEffect(() => {
     if (!localPreviewUrl) return;
