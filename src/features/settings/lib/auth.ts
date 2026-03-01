@@ -8,7 +8,7 @@ import { prisma } from "@/features/settings/lib/prisma";
 
 const credentialsSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(8),
+  password: z.string().min(1),
 });
 const MAX_SESSION_IMAGE_URL_LENGTH = 1024;
 
@@ -75,39 +75,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
-    jwt: async ({ token, user, trigger, session }) => {
+    jwt: async ({ token, user, trigger }) => {
       if (user) {
         token.id = user.id;
         token.role = (user as { role?: string }).role;
-        token.picture = normalizeSessionImage(user.image);
       }
 
-      const updatedImage =
-        trigger === "update"
-          ? normalizeSessionImage(session?.image ?? (session?.user as { image?: unknown } | undefined)?.image)
-          : undefined;
-      if (updatedImage) {
-        token.picture = updatedImage;
+      if (trigger === "update") {
+        token.lastUpdated = Date.now();
       }
 
+      // Force a fresh database fetch to ensure token is never stale
       if (token.id) {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id as string },
-          select: {
-            image: true,
-            avatarUrl: true,
-            name: true,
-            email: true,
-            role: true,
-          },
+          select: { image: true },
         });
 
-        if (dbUser) {
-          token.picture = normalizeSessionImage(dbUser.image ?? dbUser.avatarUrl);
-          token.name = dbUser.name;
-          token.email = dbUser.email;
-          token.role = dbUser.role;
-        }
+        token.picture = dbUser?.image || null;
+        token.lastUpdated = Date.now(); // Invalidate any internal caches
       }
 
       return token;
@@ -115,7 +101,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     session: async ({ session, token }) => {
       if (session.user) {
         session.user.id = token.id as string;
-        session.user.image = normalizeSessionImage(token.picture) ?? null;
+        session.user.image =
+          typeof token.picture === "string" ? normalizeSessionImage(token.picture) ?? null : null;
         session.user.role = token.role as string;
         session.user.name = token.name as string;
         session.user.email = token.email as string;

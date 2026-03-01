@@ -1,11 +1,10 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useActionState, useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Camera } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useSession } from "next-auth/react";
 import { useForm, useWatch } from "react-hook-form";
-import { useRouter } from "next/navigation";
 
 import { updateProfile } from "@/features/settings/actions/profile";
 import {
@@ -23,8 +22,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/components/ui/use-toast";
+import { UserAvatar } from "@/features/settings/components/UserAvatar";
 
 type ProfileFormProps = {
   initialData: {
@@ -54,7 +53,6 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
   const lastHandledStateKey = useRef<string>("");
   const { data: session, update } = useSession();
   const { toast } = useToast();
-  const router = useRouter();
 
   const form = useForm<ProfileSchema>({
     resolver: zodResolver(profileSchema),
@@ -78,9 +76,30 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
     state.success && state.profile
       ? state.profile.avatarUrl ?? state.profile.image ?? null
       : initialData.avatarUrl;
+  const latestDbImage =
+    state.image ?? state.profile?.image ?? state.profile?.avatarUrl ?? persistedAvatarUrl ?? null;
 
-  const previewUrl =
-    localPreviewUrl ?? persistedAvatarUrl ?? initialsPreviewUrl;
+  const previewUrl = localPreviewUrl ?? latestDbImage ?? initialsPreviewUrl;
+  const avatarSrc =
+    typeof previewUrl === "string" &&
+    (previewUrl.startsWith("http://") ||
+      previewUrl.startsWith("https://") ||
+      previewUrl.startsWith("blob:"))
+      ? previewUrl
+      : initialsPreviewUrl;
+  const avatarKey = previewUrl ?? avatarSrc;
+
+  const syncSessionImage = useCallback((image: string | null | undefined) => {
+    startTransition(() => {
+      void update({
+        ...session,
+        user: {
+          ...session?.user,
+          image: image ?? null,
+        },
+      });
+    });
+  }, [session, update]);
 
   useEffect(() => {
     if (!localPreviewUrl) return;
@@ -95,15 +114,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
 
     if (state.success) {
       toast.success(state.message);
-      if (state.profile) {
-        const nextImage = state.profile.image ?? state.profile.avatarUrl ?? undefined;
-        void update({
-          user: {
-            image: nextImage,
-          },
-        });
-        router.refresh();
-      }
+      syncSessionImage(state.image ?? state.profile?.image ?? state.profile?.avatarUrl ?? null);
       if (selectedFile) {
         setTimeout(() => setSelectedFile(null), 0);
       }
@@ -121,7 +132,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
       if (!value?.[0]) return;
       form.setError(key, { message: value[0] });
     });
-  }, [form, router, selectedFile, session, state, toast, update]);
+  }, [form, selectedFile, state, syncSessionImage, toast]);
 
   const handleSubmit = form.handleSubmit((values) => {
     const payload = new FormData();
@@ -145,12 +156,12 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
           <p className="mt-1 text-sm text-slate-500">PNG, JPG, WEBP, or GIF up to 5MB.</p>
 
           <div className="mt-4 flex items-center gap-4">
-            <Avatar className="h-16 w-16 border border-slate-200">
-              <AvatarImage src={previewUrl ?? undefined} alt="Profile avatar" />
-              <AvatarFallback className="bg-slate-100 text-slate-700">
-                {initials(form.getValues("name"))}
-              </AvatarFallback>
-            </Avatar>
+            <UserAvatar
+              image={avatarSrc}
+              fallback={initials(form.getValues("name"))}
+              avatarKey={avatarKey}
+              className="h-16 w-16 border border-slate-200"
+            />
 
             <label
               htmlFor="avatar"

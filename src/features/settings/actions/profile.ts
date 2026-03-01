@@ -15,6 +15,15 @@ import {
 } from "@/features/settings/types/schemas";
 
 const MAX_AVATAR_URL_LENGTH = 1024;
+const DICEBEAR_INITIALS_URL_PREFIX = "https://api.dicebear.com/7.x/initials/svg";
+
+function isPersistableAvatarUrl(value: string | undefined): value is string {
+  if (!value) return false;
+  if (value.startsWith("data:")) return false;
+  if (value.length > MAX_AVATAR_URL_LENGTH) return false;
+  if (value.startsWith(DICEBEAR_INITIALS_URL_PREFIX)) return false;
+  return true;
+}
 
 function fail(message: string, errors?: ProfileActionErrors): ProfileActionState {
   return {
@@ -50,7 +59,7 @@ export async function updateProfile(
 
   if (avatarFile) {
     try {
-      avatarUrl = await uploadAvatar(avatarFile);
+      avatarUrl = await uploadAvatar(avatarFile, parsed.data.name);
     } catch (error) {
       const avatarMessage = error instanceof Error ? error.message : "Avatar upload failed.";
       return fail("Avatar upload failed.", { avatar: [avatarMessage] });
@@ -66,7 +75,7 @@ export async function updateProfile(
   const requestHeaders = await headers();
   const ipAddress = requestHeaders.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
   const userAgent = requestHeaders.get("user-agent");
-  let savedProfile: {
+  let updatedUser: {
     name: string | null;
     email: string | null;
     avatarUrl: string | null;
@@ -89,12 +98,14 @@ export async function updateProfile(
         throw new Error("User not found.");
       }
 
-      savedProfile = await tx.user.update({
+      const shouldPersistAvatar = isPersistableAvatarUrl(avatarUrl);
+
+      updatedUser = await tx.user.update({
         where: { id: session.user.id },
         data: {
           name: parsed.data.name,
           email: parsed.data.email,
-          ...(avatarUrl ? { avatarUrl, image: avatarUrl } : {}),
+          ...(shouldPersistAvatar ? { avatarUrl, image: avatarUrl } : {}),
         },
         select: {
           name: true,
@@ -104,17 +115,21 @@ export async function updateProfile(
         },
       });
 
+      // Clear the Next.js Data Cache immediately for all pages
+      revalidatePath("/", "layout");
+      revalidatePath("/settings");
+
       await tx.auditLog.create({
         data: {
           userId: session.user.id,
           action: "PROFILE_UPDATE",
           entity: "USER",
           metadata: {
-            nameChanged: existingUser.name !== savedProfile.name,
-            emailChanged: existingUser.email !== savedProfile.email,
+            nameChanged: existingUser.name !== updatedUser.name,
+            emailChanged: existingUser.email !== updatedUser.email,
             avatarChanged:
-              existingUser.avatarUrl !== savedProfile.avatarUrl ||
-              existingUser.image !== savedProfile.image,
+              existingUser.avatarUrl !== updatedUser.avatarUrl ||
+              existingUser.image !== updatedUser.image,
           },
           ipAddress,
           userAgent,
@@ -125,24 +140,26 @@ export async function updateProfile(
     revalidatePath(settingsRoutes.profile);
     revalidatePath("/settings");
     revalidatePath("/settings/preferences");
-    revalidatePath("/", "layout");
 
-    type SavedProfile = {
+    type UpdatedUser = {
       name: string | null;
       email: string | null;
       avatarUrl: string | null;
       image: string | null;
     };
 
+    const persistedUser = updatedUser as UpdatedUser | null;
+
     return {
       success: true,
       message: "Profile updated successfully.",
-      profile: savedProfile
+      image: persistedUser ? persistedUser.image : null,
+      profile: persistedUser
         ? {
-            name: (savedProfile as SavedProfile).name ?? "",
-            email: (savedProfile as SavedProfile).email ?? "",
-            avatarUrl: (savedProfile as SavedProfile).avatarUrl,
-            image: (savedProfile as SavedProfile).image,
+            name: persistedUser.name ?? "",
+            email: persistedUser.email ?? "",
+            avatarUrl: persistedUser.avatarUrl,
+            image: persistedUser.image,
           }
         : undefined,
     };

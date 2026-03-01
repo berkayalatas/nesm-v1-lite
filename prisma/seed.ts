@@ -9,23 +9,46 @@ async function main() {
     select: { id: true },
   });
 
-  if (existingAdmin) {
-    console.log("Seed skipped: admin@example.com already exists.");
-    return;
-  }
-
-  const hashedPassword = await bcrypt.hash("password123", 12);
-
-  await prisma.user.create({
-    data: {
-      email: "admin@example.com",
-      password: hashedPassword,
-      name: "NESM Admin",
-      role: "admin",
-    },
+  const existingDemo = await prisma.user.findUnique({
+    where: { email: "demo@nesm.com" },
+    select: { id: true },
   });
 
-  console.log("Seed complete: created admin@example.com.");
+  if (!existingAdmin) {
+    const hashedAdminPassword = await bcrypt.hash("password123", 12);
+
+    await prisma.user.create({
+      data: {
+        email: "admin@example.com",
+        password: hashedAdminPassword,
+        name: "NESM Admin",
+        role: "admin",
+      },
+    });
+  }
+
+  if (existingDemo) {
+    const hashedDemoPassword = await bcrypt.hash("demo123", 12);
+    await prisma.user.update({
+      where: { email: "demo@nesm.com" },
+      data: {
+        password: hashedDemoPassword,
+        name: "Demo User",
+        role: "user",
+      },
+    });
+  } else {
+    const hashedDemoPassword = await bcrypt.hash("demo123", 12);
+
+    await prisma.user.create({
+      data: {
+        email: "demo@nesm.com",
+        password: hashedDemoPassword,
+        name: "Demo User",
+        role: "user",
+      },
+    });
+  }
 }
 
 main()

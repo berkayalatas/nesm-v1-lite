@@ -39,6 +39,12 @@ export default async function SettingsProfilePage({ searchParams }: SettingsProf
   const initialsAvatarUrl = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(
     user.name?.trim() || "User"
   )}`;
+  const resolvedAvatarUrl =
+    user.avatarUrl && user.avatarUrl.length > 0
+      ? user.avatarUrl
+      : user.image && user.image.length > 0
+        ? user.image
+        : initialsAvatarUrl;
 
   return (
     <section className="space-y-6">
@@ -53,7 +59,7 @@ export default async function SettingsProfilePage({ searchParams }: SettingsProf
         initialData={{
           name: user.name ?? "",
           email: user.email,
-          avatarUrl: user.avatarUrl ?? user.image ?? initialsAvatarUrl,
+          avatarUrl: resolvedAvatarUrl,
         }}
       />
     </section>

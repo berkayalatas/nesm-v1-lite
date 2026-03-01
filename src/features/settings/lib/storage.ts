@@ -1,6 +1,4 @@
 import { put } from "@vercel/blob";
-import fs from "node:fs/promises";
-import path from "node:path";
 
 const ALLOWED_IMAGE_TYPES = new Set([
   "image/jpeg",
@@ -16,7 +14,7 @@ const isBlobTokenConfigured = Boolean(
 );
 
 export interface AvatarStorageAdapter {
-  uploadAvatar(file: File): Promise<string>;
+  uploadAvatar(file: File, seedName?: string): Promise<string>;
 }
 
 function ensureSupportedAvatar(file: File): void {
@@ -44,7 +42,7 @@ const vercelBlobAvatarStorage: AvatarStorageAdapter = {
     ensureSupportedAvatar(file);
 
     if (!isBlobTokenConfigured) {
-      throw new Error("Vercel Blob storage is not configured.");
+      throw new Error("Avatar storage is not configured. Set BLOB_READ_WRITE_TOKEN.");
     }
 
     try {
@@ -54,40 +52,17 @@ const vercelBlobAvatarStorage: AvatarStorageAdapter = {
       });
 
       return blob.url;
-    } catch (error) {
-      throw error;
-    }
-  },
-};
-
-const localFileSystemAvatarStorage: AvatarStorageAdapter = {
-  async uploadAvatar(file: File): Promise<string> {
-    ensureSupportedAvatar(file);
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const publicDir = path.join(process.cwd(), "public", "avatars");
-
-    try {
-      await fs.access(publicDir);
     } catch {
-      await fs.mkdir(publicDir, { recursive: true });
+      throw new Error("Avatar upload failed while writing to storage.");
     }
-
-    const filename = `${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "-")}`;
-    const filePath = path.join(publicDir, filename);
-    await fs.writeFile(filePath, buffer);
-
-    return `/avatars/${filename}`;
   },
 };
-
-let avatarStorageAdapter: AvatarStorageAdapter = isBlobTokenConfigured
-  ? vercelBlobAvatarStorage
-  : localFileSystemAvatarStorage;
+let avatarStorageAdapter: AvatarStorageAdapter = vercelBlobAvatarStorage;
 
 export function setAvatarStorageAdapter(adapter: AvatarStorageAdapter): void {
   avatarStorageAdapter = adapter;
 }
 
-export async function uploadAvatar(file: File): Promise<string> {
-  return avatarStorageAdapter.uploadAvatar(file);
+export async function uploadAvatar(file: File, seedName?: string): Promise<string> {
+  return avatarStorageAdapter.uploadAvatar(file, seedName);
 }

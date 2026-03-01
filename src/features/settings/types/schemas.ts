@@ -51,6 +51,7 @@ export type ProfileActionState = {
   success: boolean;
   message: string;
   errors?: ProfileActionErrors;
+  image?: string | null;
   profile?: {
     name: string;
     email: string;

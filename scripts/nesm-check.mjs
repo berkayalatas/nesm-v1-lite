@@ -17,16 +17,20 @@ function paint(color, text) {
   return `${colors[color]}${text}${colors.reset}`;
 }
 
+function print(text) {
+  process.stdout.write(`${text}\n`);
+}
+
 function ok(text) {
-  console.log(`${paint("green", "OK")} ${text}`);
+  print(`${paint("green", "OK")} ${text}`);
 }
 
 function warn(text) {
-  console.log(`${paint("yellow", "WARN")} ${text}`);
+  print(`${paint("yellow", "WARN")} ${text}`);
 }
 
 function fail(text) {
-  console.log(`${paint("red", "ERROR")} ${text}`);
+  print(`${paint("red", "ERROR")} ${text}`);
 }
 
 function parseEnvFile(filePath) {
@@ -86,7 +90,7 @@ async function checkDatabaseConnection(databaseUrl) {
 }
 
 async function main() {
-  console.log(paint("cyan", "NESM Environment Check"));
+  print(paint("cyan", "NESM Environment Check"));
 
   const cwd = process.cwd();
   const envPath = path.join(cwd, ".env");
@@ -124,12 +128,12 @@ async function main() {
   const dbOk = await checkDatabaseConnection(getVar("DATABASE_URL"));
 
   if (nodeMajor < 20 || !fs.existsSync(envPath) || !dbOk) {
-    console.log(paint("red", "NESM check completed with errors."));
+    print(paint("red", "NESM check completed with errors."));
     process.exitCode = 1;
     return;
   }
 
-  console.log(paint("green", "NESM check completed successfully."));
+  print(paint("green", "NESM check completed successfully."));
 }
 
 void main();
