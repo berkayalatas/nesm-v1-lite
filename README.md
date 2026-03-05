@@ -47,11 +47,6 @@ Stop wrestling with Next.js 15's new cache mechanisms and Auth.js v5 integration
 
 ---
 
-## ⚙️ Quick Start (Lite)
-
-1. **Clone the repo:**
-   ```bash
-   git clone [https://github.com/berkayalatas/nesm-v1-lite.git](https://github.com/berkayalatas/nesm-v1-lite.git)
 
 ### 🛠️ Tech Stack
 - **Framework:** Next.js 15 (App Router)
@@ -82,12 +77,6 @@ Stop wrestling with Next.js 15's new cache mechanisms and Auth.js v5 integration
 👉 [**Download NESM V1.0 Full Version on Gumroad ($29)**](https://alatasdev.gumroad.com/l/nesm-v1-nextjs-settings)
 
 ---
-
-## ⚙️ Getting Started (Lite)
-
-1. **Clone the repo:**
-   ```bash
-   git clone [https://github.com/berkayalatas/nesm-v1-lite.git](https://github.com/berkayalatas/nesm-v1-lite.git)
-
+ 
 
    
