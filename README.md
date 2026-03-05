@@ -1,104 +1,48 @@
-# NESM V1.0 (Next.js Enterprise Settings Module)
+# 🚀 NESM V1.0 - Next.js 15 Enterprise Settings & Profile Module
 
-Production-ready account settings module for modern SaaS products, built with Next.js App Router and enterprise-focused security patterns.
+**NESM (Next.js Enterprise Settings Module)**, Next.js 15 ve Auth.js v5 projeleriniz için geliştirilmiş, güvenli ve ölçeklenebilir bir kullanıcı ayarları çözümüdür. Bu repo, projenin temel özelliklerini içeren **Lite** versiyonudur.
 
-## Tech Stack
+---
 
-- Next.js 15
-- Auth.js v5
-- Prisma
-- Tailwind CSS
-- Shadcn/UI
+## 🔥 Neden NESM V1.0?
 
-## Features
+Next.js 15'in yeni cache mekanizması ve Auth.js v5 entegrasyonu ile vakit kaybetmeyin. NESM, kurumsal projelerde ihtiyaç duyulan profil yönetimini hazır bir modül olarak sunar.
 
-- Secure Auth
-: Credentials-based login with Auth.js session handling.
-- Profile Management
-: Update profile data and avatar with session refresh support.
-- Security Logs (Audit)
-: Server-side audit trail for profile/security/preferences actions.
-- Active Sessions
-: View and revoke active sessions, including logout-from-other-devices workflow.
-- Optimistic UI
-: Responsive form UX with immediate feedback and progressive updates.
+### 🛠️ Tech Stack
+- **Framework:** Next.js 15 (App Router)
+- **Authentication:** Auth.js v5 (NextAuth)
+- **Database:** Prisma ORM & PostgreSQL
+- **UI:** Tailwind CSS & Shadcn UI
+- **Storage:** Vercel Blob Ready
 
-## Setup
+---
 
-```bash
-npm install
-cp .env.example .env
-npx prisma db push
-npx prisma db seed
-```
+## 💎 Lite vs. Full Version
 
-Create your local environment from `.env.example`, then fill in real values for your database, auth secret, and blob token.
+| Özellik | Lite (GitHub) | Full (Gumroad) |
+| :--- | :--- | :--- |
+| **Next.js 15 & Auth.js v5 Setup** | ✅ | ✅ |
+| **Profile Form UI Components** | ✅ | ✅ |
+| **Persistent Avatar Uploads** | ❌ | ✅ (Vercel Blob Integrated) |
+| **Database-Level Audit Logs** | ❌ | ✅ (Security Verified) |
+| **Production-Ready Polish** | ❌ | ✅ |
+| **Priority Support** | ❌ | ✅ |
 
-## Environment Variables
+---
 
-`.env.example` includes the required keys:
+## 🚀 Get the Full Experience
 
-```env
-DATABASE_URL="postgresql://..."
-DIRECT_URL=""
-AUTH_SECRET="replace-with-secret"
-BLOB_READ_WRITE_TOKEN="replace-with-token"
-NEXT_PUBLIC_APP_URL="http://localhost:3000"
-```
+**Stop wasting hours on avatar persistence bugs and session management.** Get the production-ready source code with all enterprise features:
 
-Notes:
-- `DATABASE_URL` and `AUTH_SECRET` are required.
-- `BLOB_READ_WRITE_TOKEN` is required for avatar uploads with the default storage adapter.
-- `DIRECT_URL` is recommended for migrations when using pooled providers.
+👉 [**Download NESM V1.0 Full Version on Gumroad ($29)**](https://alatasdev.gumroad.com/l/nesm-v1-nextjs-settings)
 
-If you are using Neon/Supabase with PgBouncer, prefer:
-- `DATABASE_URL=...?...&pgbouncer=true&connection_limit=1`
-- `DIRECT_URL=...` (direct, non-pooled connection string for Prisma migrations)
+---
 
-For intermittent connection resets (e.g. `E57P01`), first verify pooled/direct URLs above, then retry the failed Prisma operation. A simple operational pattern is 2-3 retries with short backoff for migration/seed scripts.
+## ⚙️ Getting Started (Lite)
 
-## First-Time Login (Seed Credentials)
+1. **Clone the repo:**
+   ```bash
+   git clone [https://github.com/berkayalatas/nesm-v1-lite.git](https://github.com/berkayalatas/nesm-v1-lite.git)
 
-After running `npx prisma db seed`, use:
 
-- Email: `admin@example.com`
-- Password: `password123`
-- Permissions: `admin` (full access)
-
-Demo account for preview/testing:
-
-- Email: `demo@nesm.com`
-- Password: `demo123`
-- Permissions: `user` (limited user-level access)
-
-Then open:
-
-- `http://localhost:3000/signin`
-
-## Development
-
-```bash
-npm run dev
-```
-
-## Database Migration
-
-After setting environment variables, run:
-
-```bash
-npx prisma db push
-npx prisma db seed
-```
-
-## Production Build
-
-```bash
-npm run build
-npm start
-```
-
-## Deployment (Vercel)
-
-- Add all environment variables from `.env.example` in Vercel Project Settings.
-- Configure `BLOB_READ_WRITE_TOKEN` and connect Vercel Blob for avatar uploads.
-- Use production `DATABASE_URL` (and `DIRECT_URL` when available) before running migrations.
+   
